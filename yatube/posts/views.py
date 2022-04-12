@@ -7,11 +7,16 @@ from .forms import PostForm
 from .models import Group, Post, User
 
 
-def index(request):
-    posts = Post.objects.select_related('group', 'author')
+def pagination(posts, request):
     paginator = Paginator(posts, settings.MAX_POSTS)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    return page_obj
+
+
+def index(request):
+    posts = Post.objects.select_related('group', 'author')
+    page_obj = pagination(posts, request)
     context = {
         'page_obj': page_obj,
     }
@@ -21,9 +26,7 @@ def index(request):
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     posts = group.posts.select_related('author')
-    paginator = Paginator(posts, settings.MAX_POSTS)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = pagination(posts, request)
     context = {
         'group': group,
         'page_obj': page_obj,
@@ -33,28 +36,19 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    posts = Post.objects.filter(author=author)
-    posts_count = author.posts.count()
-    paginator = Paginator(posts, settings.MAX_POSTS)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    posts = author.posts.select_related('author')
+    page_obj = pagination(posts, request)
     context = {
         'author': author,
         'page_obj': page_obj,
-        'posts_count': posts_count,
     }
     return render(request, 'posts/profile.html', context)
 
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
-    group = post.group
-    author = post.author
-    posts_count = author.posts.count()
     context = {
         'post': post,
-        'group': group,
-        'posts_count': posts_count,
     }
     return render(request, 'posts/post_detail.html', context)
 
@@ -62,15 +56,16 @@ def post_detail(request, post_id):
 @login_required
 def post_create(request):
     form = PostForm(request.POST or None)
-    if form.is_valid():
-        post = form.save(commit=False)
-        post.author = request.user
-        form.save()
-        return redirect('posts:profile', post.author)
+    author = request.user
     context = {
         'form': form,
     }
-    return render(request, 'posts/post_create.html', context)
+    if not form.is_valid():
+        return render(request, 'posts/post_create.html', context)
+    post = form.save(commit=False)
+    post.author = author
+    form.save()
+    return redirect('posts:profile', author)
 
 
 @login_required
@@ -85,6 +80,5 @@ def post_edit(request, post_id):
     context = {
         'post': post,
         'form': form,
-        'is_edit': True,
     }
     return render(request, 'posts/post_create.html', context)
