@@ -6,7 +6,7 @@
 
 {% block content %}
   {% block header %}
-    <h1>{{ group.title }}</h1>
+    {{ group.title }}
   {% endblock header %}
   <p>{{ group.description|linebreaks }}</p>
   {% for post in page_obj %}

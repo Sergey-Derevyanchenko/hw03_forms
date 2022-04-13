@@ -5,7 +5,9 @@
 {% endblock %}
 
 {% block content %}
-  <h1>Последние обновления на сайте</h1>
+  {% block header %}
+    Последние обновления на сайте
+  {% endblock header %}
   {% for post in page_obj %}
     {% include 'posts/post_card.html' %}
   {% endfor %}
