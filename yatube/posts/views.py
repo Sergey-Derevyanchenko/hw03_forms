@@ -56,16 +56,15 @@ def post_detail(request, post_id):
 @login_required
 def post_create(request):
     form = PostForm(request.POST or None)
-    author = request.user
     context = {
         'form': form,
     }
     if not form.is_valid():
         return render(request, 'posts/post_create.html', context)
     post = form.save(commit=False)
-    post.author = author
+    post.author = request.user
     form.save()
-    return redirect('posts:profile', author)
+    return redirect('posts:profile', post.author)
 
 
 @login_required
@@ -78,7 +77,6 @@ def post_edit(request, post_id):
         form.save()
         return redirect('posts:post_detail', post_id)
     context = {
-        'post': post,
         'form': form,
     }
     return render(request, 'posts/post_create.html', context)
